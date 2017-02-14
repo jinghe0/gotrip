@@ -3,7 +3,6 @@ package audio
 import (
 	"github.com/xthexder/go-jack"
 	"fmt"
-	"log"
 )
 
 var client *jack.Client
@@ -88,14 +87,11 @@ func CreateClient(name string, numChannels int) (*Client, error) {
 func processSending() {
 	for {
 		for _, c := range clients {
-//			log.Println("Processando cliente", c);
 			select {
 			// Tenta ler o buffer sem travar
 			case f := <- c.Send:
 				// Para cada porta de saída
-				log.Println("Lendo portas...");
 				for id, port := range c.Output {
-					log.Println("Enviando portas...");
 					// Pega o buffer do jack
 					b := port.GetBuffer(uint32(f.NumSamples()))
 					// Copia os samples manualmente
@@ -112,13 +108,9 @@ func processSending() {
 // Callback de processamento do cliente global
 func processCallback(nFrames uint32) int {
 	for _, c := range clients {
-		log.Println("Processing frame for client", c)
 		frame := NewFrame(int(c.NumChannels), int(nFrames))
-
 		for i, port := range c.Input {
 			buf := port.GetBuffer(nFrames)
-
-			log.Println("Processando porta", port)
 			for k := 0; k < int(nFrames); k++ {
 				frame[i][k] = float32(buf[k])
 			}

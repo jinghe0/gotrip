@@ -219,9 +219,7 @@ func (s *Session) handleIncomming() {
 
 			select {
 			case s.AudioClient.Send <- frame.Frame:
-				log.Println("Sending audio frame!")
 			default:
-				log.Println("Sending audio frame would block...")
 			}
 		default:
 			log.Println("Invalid packet", p, ". Ignoring")
