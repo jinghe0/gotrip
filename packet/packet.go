@@ -7,122 +7,154 @@ import (
 	"io"
 )
 
+// Packet Type
 type PacketType byte
 
+// Types of packet
 const (
-	HandshakePacketId PacketType = iota
-	AudioPacketId
-	ExitPacketId
+	HandshakeClientId PacketType = iota
+	HandshakeServerId
+	AudioFrameId
 )
 
-//type PacketMetadata struct {
-//	Type PacketType
-//	Size uint32
-//}
+// Packet send or received through the network
+type Packet interface {}
 
-type HandshakePacket struct {
-	NumChannels uint8
+// Handshake Client Packet
+type HandshakeClient struct {
+	Version uint8
 }
 
-//type AudioPacket struct {
-//	Audio AudioBuffers
-//}
+// Handshake Server Packet
+type HandshakeServer struct {
+	Version     uint8
+	Session     uint32
+	NumChannels uint8
+	SampleRate  uint32
+}
 
-/*
- * Escreve um pacote de handshake
- *
- * Tipo de Pacote (1 byte)
- * Número de Canais (1 byte)
- */
-func WriteHandshakePacket(numChannels uint8) *bytes.Buffer {
+// Audio Frame Packet
+type AudioFrame struct {
+	Id    uint8
+	Frame audio.Frame
+}
+
+func WriteHandshakeClient(p HandshakeClient) *bytes.Buffer {
 	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.LittleEndian, HandshakePacketId)
-	binary.Write(buffer, binary.LittleEndian, numChannels)
+	binary.Write(buffer, binary.LittleEndian, HandshakeClientId)
+	binary.Write(buffer, binary.LittleEndian, p.Version)
 	return buffer
 }
 
-/*
- * Lê um pacote de handshake
- */
-func ReadHandshakePacket(reader io.Reader) (packet HandshakePacket, err error) {
-	err = binary.Read(reader, binary.LittleEndian, &packet.NumChannels)
-	return
+func WriteHandshakeServer(p HandshakeServer) *bytes.Buffer {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.LittleEndian, HandshakeServerId)
+	binary.Write(buffer, binary.LittleEndian, p.Version)
+	binary.Write(buffer, binary.LittleEndian, p.Session)
+	binary.Write(buffer, binary.LittleEndian, p.NumChannels)
+	binary.Write(buffer, binary.LittleEndian, p.SampleRate)
+	return buffer
 }
 
-/*
- * Escreve um pacote de audio
- *
- * Tipo de Pacote (1 byte)
- * Tamanho do pacote em bytes (4 bytes)
- *
- * Número de Canais (1 byte)
- * Número de samples (4 bytes)
- * Buffers de audio (um canal por vez) (Número de Canais
- *    * Número de samples * Sizeof(float32))
- */
-func WriteAudioPacket(audio audio.AudioBuffers) *bytes.Buffer {
+func WriteAudioFrame(p AudioFrame) *bytes.Buffer {
 	buffer := new(bytes.Buffer)
 
-	//	packetLen := audio.NumChannels() * audio.NumSamples() * 4 + 5;
-
-	binary.Write(buffer, binary.LittleEndian, byte(AudioPacketId))
-	//	binary.Write(buffer, binary.LittleEndian, uint32(packetLen))
-	binary.Write(buffer, binary.LittleEndian, uint8(audio.NumChannels()))
-	binary.Write(buffer, binary.LittleEndian, uint32(audio.NumSamples()))
+	binary.Write(buffer, binary.LittleEndian, AudioFrameId)
+//	binary.Write(buffer, binary.LittleEndian, p.Id)
+	binary.Write(buffer, binary.LittleEndian, uint32(p.Frame.NumChannels()))
+	binary.Write(buffer, binary.LittleEndian, uint32(p.Frame.NumSamples()))
 
 	// Escreve faixa por faixa de audio
-	for i := 0; i < audio.NumChannels(); i++ {
-		binary.Write(buffer, binary.LittleEndian, []float32(audio.Channel(i)))
+	for i := 0; i < p.Frame.NumChannels(); i++ {
+		binary.Write(buffer, binary.LittleEndian, []float32(p.Frame.Channel(i)))
 	}
 
 	return buffer
 }
 
-/*
- * Lê um pacote de audio
- */
-func ReadAudioPacket(reader io.Reader) (audio.AudioBuffers, error) {
-	var numChannels uint8
-	var numSamples uint32
-
-	if err := binary.Read(reader, binary.LittleEndian, &numChannels); err != nil {
+func ReadPacket(reader io.Reader) (Packet, error) {
+	t, err := readPacketType(reader)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := binary.Read(reader, binary.LittleEndian, &numSamples); err != nil {
-		return nil, err
+	switch t {
+	case HandshakeClientId:
+		return readHandshakeClient(reader)
+	case HandshakeServerId:
+		return readHandshakeServer(reader)
+	case AudioFrameId:
+		return readAudioFrame(reader)
 	}
 
-	buffer := audio.NewAudioBuffers(int(numChannels), int(numSamples))
-	for i := 0; i < buffer.NumChannels(); i++ {
-		err := binary.Read(reader, binary.LittleEndian, []float32(buffer[i]))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return buffer, nil
+	return nil, nil
 }
 
-/*
- * Lê o tipo de pacote
- */
-func ReadPacketType(reader io.Reader) (t PacketType, err error) {
+func readPacketType(reader io.Reader) (t PacketType, err error) {
 	err = binary.Read(reader, binary.LittleEndian, &t)
 	return
 }
 
-///*
-// * Escreve um pacote de audio
-// */
-//func NewAudioPacket(audio AudioBuffers) (*bytes.Buffer, error) {
-//	buffer := new(bytes.Buffer);
-//	buffer.WriteByte(AudioPacket); // Tipo de Pacote (1 byte)
-//
-//	err := binary.Write(buffer, binary.LittleEndian, audio);
+// reads a handshake client packet from the stream
+func readHandshakeClient(reader io.Reader) (packet HandshakeClient, err error) {
+	err = binary.Read(reader, binary.LittleEndian, &packet.Version)
+	return
+}
+
+func readHandshakeServer(reader io.Reader) (packet HandshakeServer, err error) {
+	err = binary.Read(reader, binary.LittleEndian, &packet.Version)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(reader, binary.LittleEndian, &packet.Session)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(reader, binary.LittleEndian, &packet.NumChannels)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(reader, binary.LittleEndian, &packet.SampleRate)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+
+// reads an audio frame packet from the stream
+func readAudioFrame(reader io.Reader) (packet AudioFrame, err error) {
+	var channels uint32
+	var samples uint32
+
+//	err = binary.Read(reader, binary.LittleEndian, &packet.Id)
 //	if err != nil {
-//		return nil, err
+//		return
 //	}
-//
-//	return buffer, nil
-//}
+
+	err = binary.Read(reader, binary.LittleEndian, &channels)
+	if err != nil {
+		return
+	}
+
+	err = binary.Read(reader, binary.LittleEndian, &samples)
+	if err != nil {
+		return
+	}
+
+	// Read all audio channels
+	frame := audio.NewFrame(int(channels), int(samples))
+	for i := 0; i < frame.NumChannels(); i++ {
+		err = binary.Read(reader, binary.LittleEndian, []float32(frame[i]))
+		if err != nil {
+			return
+		}
+	}
+
+	packet.Frame = frame
+	return
+}

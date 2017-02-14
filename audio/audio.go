@@ -1,59 +1,48 @@
 package audio
 
-// Buffer de audio Jack
-type AudioBuffer []float32
-type AudioBuffers []AudioBuffer
+// Audio Buffer
+type Buffer []float32
 
-/*
- * Retorna o número de samples de um canal
- */
-func (b AudioBuffer) NumSamples() int {
+// Return the number of samples of this buffer
+func (b Buffer) NumSamples() int {
 	return len(b)
 }
 
-/*
- * Retorna um sample
- */
-func (b AudioBuffer) Sample(i int) float32 {
+// Return a sample from this buffer
+func (b Buffer) Sample(i int) float32 {
 	return b[i]
 }
 
-/*
- * Retorna o número de canais de um buffer de audio
- */
-func (b AudioBuffers) NumChannels() int {
+
+// Audio Frame
+type Frame  []Buffer
+
+// Return the number of channels of this frame
+func (b Frame) NumChannels() int {
 	return len(b)
 }
 
-/*
- * Retorna um canal de um buffer de audio
- */
-func (b AudioBuffers) Channel(c int) AudioBuffer {
+// Return a channel from this frame
+func (b Frame) Channel(c int) Buffer {
 	return b[c]
 }
 
-/*
- * Retorna o número de samples de um buffer de audio
- */
-func (b AudioBuffers) NumSamples() int {
+// Return the number of samples of this frame
+func (b Frame) NumSamples() int {
 	return b.Channel(0).NumSamples()
 }
 
-/*
- * Cria um canal de audio
- */
-func NewAudioBuffer(numSamples int) AudioBuffer {
-	return AudioBuffer(make([]float32, numSamples))
+// Creates a new audio buffer
+func NewBuffer(samples int) Buffer {
+	return Buffer(make([]float32, samples))
 }
 
-/*
- * Cria um buffer de audio
- */
-func NewAudioBuffers(numChannels, numSamples int) AudioBuffers {
-	audio := AudioBuffers(make([]AudioBuffer, numChannels))
+// Creates a new frame
+func NewFrame(channels, samples int) Frame {
+	audio := Frame(make([]Buffer, channels))
 
-	for i := 0; i < numChannels; i++ {
-		audio[i] = NewAudioBuffer(numSamples)
+	for i := 0; i < channels; i++ {
+		audio[i] = NewBuffer(samples)
 	}
 
 	return audio
