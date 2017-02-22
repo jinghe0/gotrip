@@ -2,11 +2,11 @@ package manager
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/vtfr/gotrip/audio"
 	"github.com/vtfr/gotrip/packet"
 	"log"
 	"net"
-	"fmt"
 )
 
 type Mode uint8
@@ -28,26 +28,26 @@ type Session struct {
 	AudioClient *audio.Client
 
 	// Informações da conexão
-	LocalAddr   *net.UDPAddr
-	RemoteAddr  *net.UDPAddr
-	Listener    *net.UDPConn
-	Connection  *net.UDPConn
+	LocalAddr  *net.UDPAddr
+	RemoteAddr *net.UDPAddr
+	Listener   *net.UDPConn
+	Connection *net.UDPConn
 
 	// Flag de inicio de streamming ou não
-	Streamming  bool
+	Streamming bool
 
 	// Canal para termino de sessão
 	Exit chan bool
 }
 
 func NewSessionAsMaster(name, addr string, numChan, sampleRate int) (*Session, error) {
-	s := &Session {
-		Mode: Master,
-		Name: name,
+	s := &Session{
+		Mode:        Master,
+		Name:        name,
 		NumChannels: uint32(numChan),
-		SampleRate: uint64(sampleRate),
-		Streamming: false,
-		Exit: make(chan bool),
+		SampleRate:  uint64(sampleRate),
+		Streamming:  false,
+		Exit:        make(chan bool),
 	}
 
 	laddr, err := net.ResolveUDPAddr("udp", addr)
@@ -67,10 +67,10 @@ func NewSessionAsMaster(name, addr string, numChan, sampleRate int) (*Session, e
 
 func NewSessionAsMember(name, addr string) (*Session, error) {
 	s := &Session{
-		Mode: Member,
-		Name: name,
+		Mode:       Member,
+		Name:       name,
 		Streamming: false,
-		Exit: make(chan bool),
+		Exit:       make(chan bool),
 	}
 
 	raddr, err := net.ResolveUDPAddr("udp", addr)
@@ -78,7 +78,7 @@ func NewSessionAsMember(name, addr string) (*Session, error) {
 		return nil, err
 	}
 
-	laddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", raddr.Port + 1))
+	laddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", raddr.Port+1))
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +113,12 @@ func (s *Session) Run() {
 		log.Fatalln("Failer creating audio client:", err)
 	}
 
-	s.AudioClient = c;
+	s.AudioClient = c
 
 	// Inicia processamento
 	go s.handleIncomming()
 	go s.handleSending()
-	<- s.Exit
+	<-s.Exit
 }
 
 func (s *Session) waitForHandshake() {
@@ -127,10 +127,10 @@ func (s *Session) waitForHandshake() {
 		log.Println("Sending handshake...")
 		s.Listener.
 			WriteToUDP(packet.WriteHandshakeClient(packet.HandshakeClient{}).Bytes(),
-			s.RemoteAddr)
+				s.RemoteAddr)
 	}
 
-	log.Println("Waiting for handshake...");
+	log.Println("Waiting for handshake...")
 	var buffer [256]byte
 	for {
 		// Escuta um pacote UDP
@@ -138,7 +138,7 @@ func (s *Session) waitForHandshake() {
 		n, addr, err := s.Listener.ReadFromUDP(buffer[:])
 		if err != nil {
 			log.Println("Failed receiving packet from", addr, ":", err)
-			continue;
+			continue
 		}
 
 		// Inicia processamento do handshake
@@ -146,7 +146,7 @@ func (s *Session) waitForHandshake() {
 		p, err := packet.ReadPacket(bytes.NewBuffer(buffer[:n]))
 		if err != nil {
 			log.Println("Failed processing packet from", addr, ":", err)
-			continue;
+			continue
 		}
 
 		// Processa se o pacote é o handshake
@@ -157,31 +157,31 @@ func (s *Session) waitForHandshake() {
 			if _, ok := p.(packet.HandshakeClient); ok {
 				log.Println("Handshake from client received!")
 				// Envia informações do handshake
-				s.RemoteAddr = addr;
-				s.Streamming = true;
+				s.RemoteAddr = addr
+				s.Streamming = true
 
 				s.Listener.WriteToUDP(packet.WriteHandshakeServer(packet.HandshakeServer{
-						NumChannels: uint8(s.NumChannels),
-						SampleRate: uint32(s.SampleRate),
-					}).Bytes(), s.RemoteAddr)
-				return;
+					NumChannels: uint8(s.NumChannels),
+					SampleRate:  uint32(s.SampleRate),
+				}).Bytes(), s.RemoteAddr)
+				return
 			}
 
 			log.Println("Invalid packet from", addr)
-			continue;
+			continue
 		case Member:
 			// Verifica se o pacote é um handshake client
 			if hss, ok := p.(packet.HandshakeServer); ok {
 				log.Println("Handshake from server received!")
 				// Recee as informações do handshake
-				s.NumChannels = uint32(hss.NumChannels);
-				s.SampleRate  = uint64(hss.SampleRate);
-				s.Streamming  = true;
+				s.NumChannels = uint32(hss.NumChannels)
+				s.SampleRate = uint64(hss.SampleRate)
+				s.Streamming = true
 				return
 			}
 
 			log.Println("Invalid packet from", addr)
-			continue;
+			continue
 		}
 	}
 }
@@ -189,7 +189,7 @@ func (s *Session) waitForHandshake() {
 func (s *Session) handleIncomming() {
 	log.Println("Processing incomming...")
 
-	var buffer [16384]byte
+	var buffer [16384 * 32]byte
 
 	for {
 		// Escuta um pacote UDP
@@ -200,16 +200,16 @@ func (s *Session) handleIncomming() {
 		}
 
 		// Verifica se esse pacote é dessa sessão
-//		if !addr.IP.Equal(s.RemoteAddr.IP) {
-//			log.Println("Ignoring packet from", addr)
-//			continue;
-//		}
+		//		if !addr.IP.Equal(s.RemoteAddr.IP) {
+		//			log.Println("Ignoring packet from", addr)
+		//			continue;
+		//		}
 
 		// Processa pacote
 		p, err := packet.ReadPacket(bytes.NewBuffer(buffer[:n]))
 		if err != nil {
 			log.Println("Failed processing packet from", addr, ":", err)
-			continue;
+			continue
 		}
 
 		// Processa o pacote
@@ -229,7 +229,7 @@ func (s *Session) handleIncomming() {
 
 func (s *Session) handleSending() {
 	for {
-		frame := <- s.AudioClient.Receive
+		frame := <-s.AudioClient.Receive
 
 		s.Listener.WriteToUDP(packet.WriteAudioFrame(packet.AudioFrame{
 			Frame: frame,

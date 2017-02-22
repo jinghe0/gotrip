@@ -13,9 +13,8 @@ func (b Buffer) Sample(i int) float32 {
 	return b[i]
 }
 
-
 // Audio Frame
-type Frame  []Buffer
+type Frame []Buffer
 
 // Return the number of channels of this frame
 func (b Frame) NumChannels() int {

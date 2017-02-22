@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/vtfr/gotrip/manager"
 	"github.com/vtfr/gotrip/audio"
+	"github.com/vtfr/gotrip/manager"
 	"log"
 )
 
@@ -12,7 +12,7 @@ func main() {
 		JackName string
 		IsClient bool
 		Address  string
-		NumChan int
+		NumChan  int
 	}
 
 	flag.BoolVar(&config.IsClient, "client-mode", false, "is client mode")

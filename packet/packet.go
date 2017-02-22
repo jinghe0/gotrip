@@ -18,7 +18,7 @@ const (
 )
 
 // Packet send or received through the network
-type Packet interface {}
+type Packet interface{}
 
 // Handshake Client Packet
 type HandshakeClient struct {
@@ -60,7 +60,7 @@ func WriteAudioFrame(p AudioFrame) *bytes.Buffer {
 	buffer := new(bytes.Buffer)
 
 	binary.Write(buffer, binary.LittleEndian, AudioFrameId)
-//	binary.Write(buffer, binary.LittleEndian, p.Id)
+	//	binary.Write(buffer, binary.LittleEndian, p.Id)
 	binary.Write(buffer, binary.LittleEndian, uint32(p.Frame.NumChannels()))
 	binary.Write(buffer, binary.LittleEndian, uint32(p.Frame.NumSamples()))
 
@@ -125,16 +125,15 @@ func readHandshakeServer(reader io.Reader) (packet HandshakeServer, err error) {
 	return
 }
 
-
 // reads an audio frame packet from the stream
 func readAudioFrame(reader io.Reader) (packet AudioFrame, err error) {
 	var channels uint32
 	var samples uint32
 
-//	err = binary.Read(reader, binary.LittleEndian, &packet.Id)
-//	if err != nil {
-//		return
-//	}
+	//	err = binary.Read(reader, binary.LittleEndian, &packet.Id)
+	//	if err != nil {
+	//		return
+	//	}
 
 	err = binary.Read(reader, binary.LittleEndian, &channels)
 	if err != nil {

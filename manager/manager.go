@@ -23,7 +23,7 @@ func CreateSession(addr string, numChannels int) (*Session, error) {
 	globalSession = s
 	go globalSession.Run()
 
-	return globalSession, nil;
+	return globalSession, nil
 }
 
 func StartSession(addr string) (*Session, error) {

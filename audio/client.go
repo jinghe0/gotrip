@@ -1,21 +1,21 @@
 package audio
 
 import (
-	"github.com/xthexder/go-jack"
 	"fmt"
+	"github.com/xthexder/go-jack"
 )
 
 var client *jack.Client
 var clients []*Client
 
 type Client struct {
-	Name string
+	Name        string
 	NumChannels uint32
-	SampleRate uint64
-	Input  []*jack.Port
-	Output []*jack.Port
-	Receive chan Frame
-	Send    chan Frame
+	SampleRate  uint64
+	Input       []*jack.Port
+	Output      []*jack.Port
+	Receive     chan Frame
+	Send        chan Frame
 }
 
 func (c Client) NumInput() int {
@@ -43,9 +43,9 @@ func Initialize(name string) error {
 	}
 
 	// Tenta ativar o cliente Jack
-//	if code := client.Activate(); code != 0 {
-//		return jack.Strerror(code)
-//	}
+	//	if code := client.Activate(); code != 0 {
+	//		return jack.Strerror(code)
+	//	}
 
 	go processSending()
 	return nil
@@ -54,13 +54,13 @@ func Initialize(name string) error {
 // Cria novo cliente
 func CreateClient(name string, numChannels int) (*Client, error) {
 	c := &Client{
-		Name: name,
+		Name:        name,
 		NumChannels: uint32(numChannels),
 	}
 
-	c.Input  = make([]*jack.Port, numChannels)
+	c.Input = make([]*jack.Port, numChannels)
 	c.Output = make([]*jack.Port, numChannels)
-	c.Send    = make(chan Frame, 2)
+	c.Send = make(chan Frame, 2)
 	c.Receive = make(chan Frame, 2)
 
 	// Cria as portas
@@ -72,7 +72,7 @@ func CreateClient(name string, numChannels int) (*Client, error) {
 			jack.DEFAULT_AUDIO_TYPE,
 			jack.PortIsOutput, 0)
 
-		c.Input[i]  = in
+		c.Input[i] = in
 		c.Output[i] = out
 	}
 
@@ -89,7 +89,7 @@ func processSending() {
 		for _, c := range clients {
 			select {
 			// Tenta ler o buffer sem travar
-			case f := <- c.Send:
+			case f := <-c.Send:
 				// Para cada porta de saída
 				for id, port := range c.Output {
 					// Pega o buffer do jack
@@ -212,14 +212,6 @@ func chk(err error) {
 	}
 }
 */
-
-
-
-
-
-
-
-
 
 /*
 
